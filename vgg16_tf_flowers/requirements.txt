@@ -1,5 +1,6 @@
 tensorflow==2.16.1
 tensorflow-datasets>=4.9,<5.0
+protobuf==6.31.1
 scikit-learn>=1.6,<2.0
 numpy==1.26.4
 pandas==2.2.3
