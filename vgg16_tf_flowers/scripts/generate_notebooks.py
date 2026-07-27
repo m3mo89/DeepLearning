@@ -306,6 +306,14 @@ if not marcador.exists():
 print("Dependencias compatibles listas. Continúa con la siguiente celda.")
 '''
 
+MOUNT_DRIVE = r'''
+# ADAPTADO PARA GOOGLE COLAB: conservar pesos, resultados y figuras en Drive
+from google.colab import drive
+drive.mount("/content/drive")
+
+%cd "/content/drive/MyDrive/vgg16_tf_flowers"
+'''
+
 TEST_IMPORTS = r'''
 # ADAPTADO: evaluación completa multiclase
 import json
@@ -537,11 +545,11 @@ def main():
     for model in "ABC":
         train = notebook([
             markdown(f"# CNN–VGG16 — Modelo {model} (Train)\n\nVariación directa de `VGG16_Train.ipynb`. La sección convolucional no se modifica."),
-            code(INSTALL_TRAIN), code(SETUP), code(DATA), code(EDA), code(architecture(model)), code(train_cell(model)),
+            code(INSTALL_TRAIN), code(MOUNT_DRIVE), code(SETUP), code(DATA), code(EDA), code(architecture(model)), code(train_cell(model)),
         ])
         test = notebook([
             markdown(f"# CNN–VGG16 — Modelo {model} (Test)\n\nVariación directa de `VGG16_Test.ipynb`: evaluación completa y predicción individual."),
-            code(INSTALL_TEST), code(TEST_IMPORTS), code(TEST_DATA), code(test_eval(model)), code(test_figures(model)), code(single_image(model)),
+            code(INSTALL_TEST), code(MOUNT_DRIVE), code(TEST_IMPORTS), code(TEST_DATA), code(test_eval(model)), code(test_figures(model)), code(single_image(model)),
         ])
         for suffix, content in [("Train", train), ("Test", test)]:
             path = NB_DIR / f"VGG16_Modelo_{model}_{suffix}.ipynb"
