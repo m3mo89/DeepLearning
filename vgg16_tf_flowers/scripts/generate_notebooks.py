@@ -25,10 +25,24 @@ def code(text):
     }
 
 
-SETUP = r'''
-# ADAPTADO: dependencias adicionales para TFDS, métricas y gráficas
-%pip -q install --upgrade "protobuf==6.31.1" "tensorflow-datasets>=4.9,<5.0" "scikit-learn>=1.6,<2.0" seaborn==0.13.2 pydot graphviz
+INSTALL_TRAIN = r'''
+# EJECUTA ESTA CELDA PRIMERO. La primera vez reiniciará el kernel automáticamente.
+import os, signal, subprocess, sys
+from pathlib import Path
+marcador = Path("/tmp/vgg16_dependencias_compatibles")
+if not marcador.exists():
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "-q", "--upgrade",
+        "protobuf==6.31.1", "tensorflow-datasets>=4.9,<5.0",
+        "scikit-learn>=1.6,<2.0", "seaborn==0.13.2", "pydot", "graphviz",
+    ])
+    marcador.touch()
+    print("Dependencias instaladas. El kernel se reiniciará; después vuelve a ejecutar esta celda.")
+    os.kill(os.getpid(), signal.SIGKILL)
+print("Dependencias compatibles listas. Continúa con la siguiente celda.")
+'''
 
+SETUP = r'''
 import hashlib, importlib.metadata, json, os, platform, random, time
 from pathlib import Path
 import numpy as np
@@ -48,9 +62,13 @@ TAMANIO_IMAGEN = (224, 224)
 BATCH_SIZE = 16
 EPOCAS = 30
 CLASES = ["dandelion", "daisy", "tulips", "sunflowers", "roses"]
-RAIZ = Path.cwd()
+# ADAPTADO: después de reiniciar el kernel, Colab vuelve a /content.
+# Si Drive está montado, guardar siempre dentro de la carpeta del proyecto.
+RAIZ_DRIVE = Path("/content/drive/MyDrive/vgg16_tf_flowers")
+RAIZ = RAIZ_DRIVE if RAIZ_DRIVE.exists() else Path.cwd()
 for carpeta in ["data", "weights", "results", "figures"]:
     (RAIZ / carpeta).mkdir(exist_ok=True)
+print("Los artefactos se guardarán en:", RAIZ.resolve())
 
 os.environ["PYTHONHASHSEED"] = str(SEMILLA)
 random.seed(SEMILLA)
@@ -271,9 +289,25 @@ print(json.dumps(metadata, indent=2))
 '''.replace("MODEL", model)
 
 
+INSTALL_TEST = r'''
+# EJECUTA ESTA CELDA PRIMERO. La primera vez reiniciará el kernel automáticamente.
+import os, signal, subprocess, sys
+from pathlib import Path
+marcador = Path("/tmp/vgg16_dependencias_compatibles")
+if not marcador.exists():
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", "-q", "--upgrade",
+        "protobuf==6.31.1", "tensorflow-datasets>=4.9,<5.0",
+        "scikit-learn>=1.6,<2.0", "seaborn==0.13.2",
+    ])
+    marcador.touch()
+    print("Dependencias instaladas. El kernel se reiniciará; después vuelve a ejecutar esta celda.")
+    os.kill(os.getpid(), signal.SIGKILL)
+print("Dependencias compatibles listas. Continúa con la siguiente celda.")
+'''
+
 TEST_IMPORTS = r'''
 # ADAPTADO: evaluación completa multiclase
-%pip -q install --upgrade "protobuf==6.31.1" "tensorflow-datasets>=4.9,<5.0" "scikit-learn>=1.6,<2.0" seaborn==0.13.2
 import json
 from pathlib import Path
 import numpy as np
@@ -291,9 +325,11 @@ from sklearn.model_selection import train_test_split
 SEMILLA = 42
 TAMANIO_IMAGEN = (224, 224)
 BATCH_SIZE = 16
-RAIZ = Path.cwd()
+RAIZ_DRIVE = Path("/content/drive/MyDrive/vgg16_tf_flowers")
+RAIZ = RAIZ_DRIVE if RAIZ_DRIVE.exists() else Path.cwd()
 for carpeta in ["data", "results", "figures", "weights"]:
     (RAIZ / carpeta).mkdir(exist_ok=True)
+print("Los artefactos se leerán y guardarán en:", RAIZ.resolve())
 '''
 
 TEST_DATA = r'''
@@ -501,11 +537,11 @@ def main():
     for model in "ABC":
         train = notebook([
             markdown(f"# CNN–VGG16 — Modelo {model} (Train)\n\nVariación directa de `VGG16_Train.ipynb`. La sección convolucional no se modifica."),
-            code(SETUP), code(DATA), code(EDA), code(architecture(model)), code(train_cell(model)),
+            code(INSTALL_TRAIN), code(SETUP), code(DATA), code(EDA), code(architecture(model)), code(train_cell(model)),
         ])
         test = notebook([
             markdown(f"# CNN–VGG16 — Modelo {model} (Test)\n\nVariación directa de `VGG16_Test.ipynb`: evaluación completa y predicción individual."),
-            code(TEST_IMPORTS), code(TEST_DATA), code(test_eval(model)), code(test_figures(model)), code(single_image(model)),
+            code(INSTALL_TEST), code(TEST_IMPORTS), code(TEST_DATA), code(test_eval(model)), code(test_figures(model)), code(single_image(model)),
         ])
         for suffix, content in [("Train", train), ("Test", test)]:
             path = NB_DIR / f"VGG16_Modelo_{model}_{suffix}.ipynb"
