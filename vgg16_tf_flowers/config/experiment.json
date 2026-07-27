@@ -1,0 +1,18 @@
+{
+  "dataset": "tf_flowers:3.0.1",
+  "seed": 42,
+  "image_size": [224, 224],
+  "batch_size": 16,
+  "epochs": 30,
+  "learning_rate": 0.001,
+  "early_stopping_patience": 5,
+  "reduce_lr_patience": 2,
+  "splits": {"train": 0.70, "validation": 0.15, "test": 0.15},
+  "class_names": ["dandelion", "daisy", "tulips", "sunflowers", "roses"],
+  "models": {
+    "A": {"hidden_layers": [], "description": "Clasificador lineal sobre las características VGG16"},
+    "B": {"hidden_layers": [{"units": 256, "activation": "relu"}], "description": "Capacidad no lineal intermedia"},
+    "C": {"hidden_layers": [{"units": 512, "activation": "relu"}, {"dropout": 0.5}, {"units": 128, "activation": "relu"}], "description": "Mayor capacidad con regularización Dropout"}
+  }
+}
+
