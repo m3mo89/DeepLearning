@@ -27,7 +27,7 @@ def code(text):
 
 SETUP = r'''
 # ADAPTADO: dependencias adicionales para TFDS, métricas y gráficas
-!pip -q install tensorflow-datasets==4.9.6 "scikit-learn>=1.6,<2.0" seaborn==0.13.2 pydot graphviz
+%pip -q install --upgrade "tensorflow-datasets>=4.9,<5.0" "scikit-learn>=1.6,<2.0" seaborn==0.13.2 pydot graphviz
 
 import hashlib, importlib.metadata, json, os, platform, random, time
 from pathlib import Path
@@ -273,7 +273,7 @@ print(json.dumps(metadata, indent=2))
 
 TEST_IMPORTS = r'''
 # ADAPTADO: evaluación completa multiclase
-!pip -q install tensorflow-datasets==4.9.6 "scikit-learn>=1.6,<2.0" seaborn==0.13.2
+%pip -q install --upgrade "tensorflow-datasets>=4.9,<5.0" "scikit-learn>=1.6,<2.0" seaborn==0.13.2
 import json
 from pathlib import Path
 import numpy as np
