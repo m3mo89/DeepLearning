@@ -29,7 +29,7 @@ SETUP = r'''
 # ADAPTADO: dependencias adicionales para TFDS, métricas y gráficas
 !pip -q install tensorflow-datasets==4.9.6 "scikit-learn>=1.6,<2.0" seaborn==0.13.2 pydot graphviz
 
-import hashlib, json, os, platform, random, time
+import hashlib, importlib.metadata, json, os, platform, random, time
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -62,7 +62,7 @@ except Exception:
     pass
 
 print("TensorFlow:", tf.__version__)
-print("TFDS:", tfds.__version__)
+print("TFDS:", importlib.metadata.version("tensorflow-datasets"))
 print("Python:", platform.python_version())
 print("GPU:", tf.config.list_physical_devices("GPU"))
 '''
