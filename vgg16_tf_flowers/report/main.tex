@@ -46,7 +46,10 @@ redimensionan a $224\times224$ y se aplica \texttt{preprocess\_input} de VGG16.
 
 \IfFileExists{../figures/histograma_clases_splits.png}{
 \begin{figure}[H]\centering\includegraphics[width=.85\textwidth]{histograma_clases_splits.png}
-\caption{Distribución por clase y partición.}\end{figure}}{}
+\caption{Distribución por clase y partición. La altura de cada barra es el
+número de imágenes; comparar colores dentro de una clase permite comprobar la
+proporción 70/15/15, y comparar clases permite identificar diferencias de
+soporte que motivan reportar métricas macro además de Accuracy.}\end{figure}}{}
 
 \section{Metodología}
 Los tres modelos emplean VGG16 preentrenada en ImageNet con
@@ -73,6 +76,53 @@ se cambió de una neurona sigmoide del ejemplo binario a cinco neuronas
 \texttt{binary\_crossentropy} a
 \texttt{sparse\_categorical\_crossentropy}.
 
+\subsection{Conceptos necesarios para leer los cabezales}
+Una capa \texttt{Dense} o densa conecta cada valor de entrada con cada una de
+sus neuronas de salida. Si recibe un vector $x$ de $n$ características y tiene
+$m$ neuronas, calcula
+\[
+z=Wx+b,
+\]
+donde $W$ contiene $n\times m$ pesos y $b$ contiene $m$ sesgos. Por ello la
+capa tiene $n\times m+m$ parámetros entrenables y produce un vector de tamaño
+$m$. El número de neuronas determina cuántas combinaciones de las
+características anteriores puede representar la capa: aumentarlo da mayor
+capacidad, pero también eleva el costo y la posibilidad de ajustar ruido del
+conjunto de entrenamiento.
+
+La transformación densa y la función de activación son conceptos distintos,
+aunque Keras permita declararlos juntos. Por ejemplo,
+\texttt{Dense(256, activation=relu)} primero calcula 256 combinaciones
+afines y luego aplica ReLU a cada una:
+\[
+\operatorname{ReLU}(z)=\max(0,z).
+\]
+ReLU conserva los valores positivos y convierte los negativos en cero. Esa
+operación introduce no linealidad; sin ella, encadenar varias capas densas
+seguiría siendo equivalente a una única transformación lineal y no permitiría
+aprender fronteras de decisión más complejas.
+
+\texttt{softmax} cumple otra función. Recibe los valores sin normalizar
+(\emph{logits}) de la capa final y transforma cada uno en
+\[
+p_i=\frac{e^{z_i}}{\sum_{j=1}^{5}e^{z_j}}.
+\]
+Así se obtienen cinco números no negativos cuya suma es uno. Cada posición
+corresponde, en el mismo orden, a dandelion, daisy, tulips, sunflowers o roses;
+la clase predicha es la de mayor probabilidad. Se usan exactamente cinco
+neuronas porque hay cinco clases mutuamente excluyentes. A diferencia de 256,
+512 o 128, este cinco no es una elección de capacidad que pueda cambiarse sin
+cambiar el problema.
+
+\texttt{Dropout} es una regularización, no una capa que aprenda nuevas
+combinaciones. Durante cada paso de entrenamiento, \texttt{Dropout(0.5)}
+anula aleatoriamente aproximadamente la mitad de las activaciones y Keras
+ajusta la escala de las restantes. Esto dificulta que unas neuronas dependan
+siempre de otras y puede reducir la coadaptación y el sobreajuste. En
+validación, prueba e inferencia no se descartan activaciones: se utiliza la red
+completa con el escalado aprendido. Dropout no añade pesos y tampoco garantiza
+por sí solo una mejora.
+
 \section{Modelos propuestos}
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{arquitectura_modelo_A_visual.png}
@@ -90,7 +140,16 @@ como línea base para comprobar si las características preentrenadas de VGG16
 ya separan las flores sin capas ocultas. Su baja capacidad reduce costo y
 riesgo de memorizar el entrenamiento. La modificación respecto al Colab del
 profesor consiste esencialmente en sustituir \texttt{Dense(1, sigmoid)} por
-\texttt{Dense(5, softmax)}.
+\texttt{Dense(5, softmax)}. Cada una de las cinco neuronas aprende un puntaje
+para una flor a partir de las mismas 512 características y Softmax convierte
+esos cinco puntajes en una distribución de probabilidad.
+
+En este modelo no tenía sentido elegir cuatro neuronas, porque faltaría una
+clase, ni seis, porque aparecería una salida sin categoría asociada. Tampoco
+se añadió una capa oculta: A busca deliberadamente la solución mínima
+compatible con cinco clases y funciona como control para responder si VGG16 ya
+produce características suficientemente separables mediante una frontera
+lineal.
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{arquitectura_modelo_B_visual.png}
@@ -109,7 +168,18 @@ VGG16, con la expectativa de representar diferencias más complejas entre
 pétalos, colores y formas. Se eligieron 256 neuronas como capacidad intermedia:
 es la mitad del vector de entrada y evita el salto excesivo de parámetros que
 produciría una capa mayor. Esta variante permite medir si la no linealidad
-adicional supera a la línea base.
+adicional supera a la línea base. En concreto, frente a 64 o 128 neuronas,
+256 conserva más combinaciones posibles; frente a 512 o 1,024, limita el
+número de pesos y el riesgo de memorizar. No se afirma que 256 sea un óptimo:
+es un hiperparámetro razonado para representar un nivel intermedio de
+capacidad, no el resultado de una búsqueda exhaustiva.
+
+La salida continúa siendo \texttt{Dense(5, softmax)} porque agregar una capa
+oculta modifica cómo se representan las imágenes, no cuántas clases existen.
+El Modelo B se inspira en A como comparación experimental, pero no continúa su
+entrenamiento ni carga sus 2,565 pesos. Se construye un cabezal nuevo, se
+inicializa aleatoriamente y se entrena de manera independiente sobre una copia
+equivalente del mismo VGG16 congelado.
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{arquitectura_modelo_C_visual.png}
@@ -133,6 +203,24 @@ entrenamiento desactiva aleatoriamente 50\% de las activaciones para limitar la
 coadaptación. Esta regularización se añadió porque el mayor número de pesos
 incrementa el riesgo de sobreajuste en un conjunto relativamente pequeño. El
 modelo prueba si más profundidad ayuda aun cuando se controla ese riesgo.
+
+Las 512 neuronas iniciales igualan la dimensión del vector recibido: permiten
+una recombinación amplia sin expandirlo. Una capa de 1,024 habría duplicado
+aproximadamente el costo de esta parte, mientras que empezar con 128 o 256
+habría comprimido las características antes de probar una representación de
+alta capacidad. Después de Dropout se eligieron 128 neuronas, una cuarta parte
+de 512, para obligar al modelo a condensar la información antes de clasificar.
+Mantener 512 reduciría poco la complejidad; usar 32 o 64 impondría una
+compresión mucho más abrupta. Igual que 256 en B, 512 y 128 son hipótesis de
+diseño para comparar capacidad y compresión, no valores universalmente
+óptimos.
+
+La última capa sigue teniendo cinco neuronas Softmax porque el número de flores
+no cambia. C toma A y B como referencias de diseño, pero tampoco hereda sus
+pesos: su cabezal completo parte de una inicialización nueva y se entrena de
+forma independiente. Por tanto, ``partir desde cero'' solo describe los
+cabezales A, B y C; el extractor VGG16 de los tres sí parte de los mismos pesos
+preentrenados en ImageNet.
 
 \subsection{Qué significa ``los pesos obtenidos''}
 Un peso es un coeficiente numérico aprendido que determina cuánto influye una
@@ -167,6 +255,67 @@ Se presentan valores por clase y promedios macro y ponderado. F1 macro es el
 criterio principal porque otorga el mismo peso a las cinco clases. Las filas de
 la matriz de confusión son observaciones reales y las columnas predicciones.
 
+\subsection{Cómo interpretar cada métrica}
+En el análisis uno-contra-el-resto, $TP$ son imágenes de una clase reconocidas
+correctamente; $FP$ son imágenes de otras clases asignadas erróneamente a ella;
+$FN$ son imágenes reales de esa clase que el modelo asignó a otra; y $TN$ son
+las restantes correctamente descartadas.
+
+\begin{itemize}
+\item \textbf{Accuracy} responde qué proporción total de imágenes fue
+clasificada correctamente. Es intuitiva, pero un único valor puede ocultar que
+una clase funciona peor que otra.
+\item \textbf{Precision} responde: de todas las imágenes que el modelo llamó
+de una clase, ¿cuántas realmente pertenecían a ella? Una Precision baja
+significa muchos falsos positivos.
+\item \textbf{Recall} responde: de todas las imágenes reales de una clase,
+¿cuántas encontró el modelo? Un Recall bajo significa muchos falsos negativos.
+\item \textbf{F1} es la media armónica de Precision y Recall. Solo es alto
+cuando ambas lo son, por lo que evita favorecer un modelo que mejore una a
+costa de deteriorar demasiado la otra.
+\item \textbf{Soporte} es el número de imágenes reales de cada clase. El
+promedio macro da el mismo peso a las cinco clases; el promedio ponderado
+multiplica cada resultado por su soporte. Se elige F1 macro como criterio
+principal para que una clase con más imágenes no domine la selección.
+\end{itemize}
+
+\subsection{Cómo leer las visualizaciones}
+\paragraph{Curvas de aprendizaje.}
+Una época es un recorrido por el conjunto de entrenamiento. La curva de
+\emph{loss} muestra el error que Adam intenta minimizar y la de Accuracy
+muestra la proporción de aciertos; cada una incluye entrenamiento y
+validación. Si ambas mejoran y se mantienen próximas, el patrón es compatible
+con aprendizaje que generaliza. Si entrenamiento continúa mejorando mientras
+validación se estanca o empeora, la separación sugiere sobreajuste. Si ambas
+permanecen pobres, sugiere subajuste. Son indicios, no pruebas aisladas, y la
+mejor época se conserva según la menor pérdida de validación.
+
+\paragraph{Matrices de confusión.}
+Las filas indican la clase real y las columnas la clase predicha. La diagonal
+contiene aciertos; una celda fuera de ella indica que la clase de su fila fue
+confundida con la clase de su columna. Ese caso es un falso negativo para la
+clase real y un falso positivo para la predicha. La matriz absoluta muestra
+cantidades de imágenes; la normalizada divide cada fila por su soporte y
+muestra proporciones, lo que facilita comparar clases de tamaños distintos.
+Una diagonal intensa y pocos valores externos son deseables.
+
+\paragraph{Gráfica de métricas por clase.}
+Cada grupo de barras compara Precision, Recall y F1 para una flor. Si Precision
+es menor que Recall, muchas imágenes de otras clases están entrando en esa
+predicción; si Recall es menor, muchas imágenes reales se están escapando.
+F1 resume el equilibrio. Estas barras permiten localizar una debilidad que
+podría quedar escondida dentro de Accuracy.
+
+\paragraph{Histograma de confianza.}
+Para cada imagen, la confianza graficada es el máximo de sus cinco valores
+Softmax, es decir, la probabilidad asignada a la clase elegida. El histograma
+separa predicciones correctas e incorrectas: idealmente los aciertos se
+concentran cerca de uno y los errores en valores menores. Errores cerca de uno
+son equivocaciones cometidas con alta seguridad y el solapamiento entre ambas
+distribuciones indica que un umbral no las separaría perfectamente. Una salida
+Softmax alta expresa seguridad interna del modelo, no certeza objetiva ni
+garantía de que las probabilidades estén bien calibradas.
+
 \section{Resultados}
 \IfFileExists{resultados_generados.tex}{\input{resultados_generados.tex}}{
 \textbf{Resultados pendientes de ejecución.} Ejecute los tres pares Train/Test
@@ -176,42 +325,70 @@ y después \texttt{python scripts/build\_report\_assets.py}.}
 \IfFileExists{../figures/curvas_modelo_\m.png}{
 \begin{figure}[H]\centering
 \includegraphics[width=.9\textwidth]{curvas_modelo_\m.png}
-\caption{Curvas de entrenamiento y validación del Modelo \m.}\end{figure}}{}
+\caption{Curvas de pérdida y Accuracy del Modelo \m. por época. La cercanía
+entre entrenamiento y validación ayuda a valorar generalización; una mejora
+solo en entrenamiento constituye un indicio de sobreajuste.}\end{figure}}{}
 \IfFileExists{../figures/matrices_confusion_modelo_\m.png}{
 \begin{figure}[H]\centering
 \includegraphics[width=.95\textwidth]{matrices_confusion_modelo_\m.png}
-\caption{Matrices de confusión del Modelo \m.}\end{figure}}{}
+\caption{Matrices de confusión absoluta y normalizada del Modelo \m. Filas:
+clases reales; columnas: predicciones. La diagonal representa aciertos y las
+celdas externas revelan la dirección de cada confusión.}\end{figure}}{}
 \IfFileExists{../figures/metricas_clase_modelo_\m.png}{
 \begin{figure}[H]\centering
 \includegraphics[width=.85\textwidth]{metricas_clase_modelo_\m.png}
-\caption{Precision, Recall y F1 por clase del Modelo \m.}\end{figure}}{}
+\caption{Precision, Recall y F1 por clase del Modelo \m. Las diferencias entre
+barras permiten distinguir exceso de falsos positivos, falsos negativos y el
+equilibrio que resume F1.}\end{figure}}{}
 \IfFileExists{../figures/histograma_confianza_modelo_\m.png}{
 \begin{figure}[H]\centering
 \includegraphics[width=.8\textwidth]{histograma_confianza_modelo_\m.png}
-\caption{Histograma de confianza del Modelo \m.}\end{figure}}{}}
+\caption{Distribución del máximo Softmax del Modelo \m., separada entre
+aciertos y errores. Los errores de confianza alta muestran que seguridad no
+equivale necesariamente a corrección ni a calibración.}\end{figure}}{}}
 
 \IfFileExists{../figures/comparacion_modelos.png}{
 \begin{figure}[H]\centering\includegraphics[width=.85\textwidth]{comparacion_modelos.png}
-\caption{Comparación global de los tres modelos.}\end{figure}}{}
+\caption{Comparación global de los tres modelos. Debe leerse junto con F1
+macro, Accuracy, brecha validación--prueba y parámetros entrenables; ninguna
+barra aislada basta para explicar la generalización.}\end{figure}}{}
 
 \section{Discusión}
-El incremento de pesos no produjo una mejora monotónica. El Modelo A, con el
-cabezal más pequeño, alcanzó el mejor F1 macro. Esto indica que la
-representación preentrenada ya era suficientemente discriminativa y que una
-frontera sencilla generalizó mejor. El Modelo B elevó considerablemente la
-capacidad, pero quedó ligeramente por debajo en prueba y mostró una brecha
-validación--prueba mayor. El Modelo C añadió todavía más pesos y regularización,
-pero obtuvo el menor F1 macro; Dropout redujo el riesgo de memorización, aunque
-no logró compensar completamente la complejidad del cabezal.
+El incremento de pesos no produjo una mejora monotónica. El Modelo A obtuvo F1
+macro de 0.8799, Accuracy de 0.8802 y brecha absoluta entre F1 macro de
+validación y prueba de 0.0219 con solo 2,565 parámetros entrenables. El Modelo B
+obtuvo 0.8775, 0.8784 y 0.0308, respectivamente, con 132,613 parámetros; el C,
+0.8652, 0.8675 y 0.0367 con 328,965. Según la regla definida antes de observar
+prueba---mayor F1 macro, seguida por Accuracy, menor brecha y menor
+complejidad---A es el ganador.
+
+Aunque B y C ``agregan más cosas'', una arquitectura mayor solo ofrece más
+grados de libertad para representar funciones: no crea nuevas imágenes ni
+garantiza que la frontera necesaria sea compleja. VGG16 ya aporta
+características de bordes, texturas y formas aprendidas de ImageNet. Con 3,670
+imágenes, A pudo aprovecharlas mediante una frontera lineal suficiente y con
+menor varianza. B y C tienen más oportunidades de adaptarse a particularidades
+del entrenamiento que no se repiten en prueba. Dropout reduce ese riesgo en C,
+pero no elimina la varianza, no añade información y no garantiza que el
+beneficio de mayor capacidad compense su dificultad de estimación.
+
+La ventaja puntual de A sobre B en F1 macro es pequeña (aproximadamente
+0.0025). Por ello la conclusión correcta es que A gana bajo la regla fijada y
+en esta ejecución reproducida, no que se haya demostrado una superioridad
+universal o estadísticamente significativa. Esa afirmación requeriría repetir
+cada arquitectura con varias semillas y estimar la variabilidad o intervalos
+de confianza.
 
 Las matrices muestran que la confusión más persistente ocurre entre
 \emph{tulips} y \emph{roses}, clases con similitudes de forma y color. Las
-curvas permiten contrastar convergencia y separación entre entrenamiento y
-validación, mientras que los histogramas de confianza permiten localizar
-errores cometidos con alta seguridad. En conjunto, los resultados muestran que
-``más neuronas'' no implica automáticamente mejor clasificación: la capacidad
-debe ser proporcional al tamaño de los datos y a la calidad de las
-características de entrada.
+celdas externas permiten ver la dirección de esa confusión, y las métricas por
+clase muestran su efecto distinto sobre falsos positivos y falsos negativos.
+Las curvas permiten contrastar convergencia y separación entre entrenamiento y
+validación, mientras que los histogramas localizan errores cometidos con alta
+seguridad. En conjunto, estas vistas explican por qué ``más neuronas'' no
+implica automáticamente mejor clasificación: la capacidad debe ser
+proporcional al tamaño de los datos y a la calidad de las características de
+entrada.
 
 \section{Conclusión}
 La selección sigue una regla fijada previamente: mayor F1 macro de prueba,
