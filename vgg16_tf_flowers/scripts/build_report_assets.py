@@ -13,6 +13,7 @@ def esc(value):
 
 
 rows = []
+weight_rows = []
 metrics = []
 class_reports = {}
 for model in "ABC":
@@ -38,6 +39,12 @@ for model in "ABC":
     if not path.exists():
         raise SystemExit(f"Falta {path}.")
     metadata[model] = json.loads(path.read_text())
+    item = metadata[model]
+    weight_rows.append(
+        f"{model} & {item['parametros_totales']:,} & "
+        f"{item['parametros_entrenables']:,} & {item['mejor_epoca']} & "
+        f"{item['duracion_segundos'] / 60:.2f} min \\\\"
+    )
 
 ranked = sorted(
     metrics,
@@ -62,6 +69,20 @@ content = r"""\begin{table}[H]
 Modelo & Accuracy & Precision macro & Recall macro & F1 macro\\
 \midrule
 """ + "\n".join(rows) + r"""
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Pesos, parámetros y entrenamiento obtenidos. Los parámetros no
+entrenables corresponden a la base VGG16 congelada.}
+\label{tab:pesos}
+\begin{tabular}{lrrrr}
+\toprule
+Modelo & Parámetros totales & Entrenables & Mejor época & Tiempo\\
+\midrule
+""" + "\n".join(weight_rows) + r"""
 \bottomrule
 \end{tabular}
 \end{table}

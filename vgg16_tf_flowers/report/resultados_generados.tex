@@ -13,6 +13,22 @@ C & 0.8675 & 0.8713 & 0.8644 & 0.8652 \\
 \end{tabular}
 \end{table}
 
+\begin{table}[H]
+\centering
+\caption{Pesos, parámetros y entrenamiento obtenidos. Los parámetros no
+entrenables corresponden a la base VGG16 congelada.}
+\label{tab:pesos}
+\begin{tabular}{lrrrr}
+\toprule
+Modelo & Parámetros totales & Entrenables & Mejor época & Tiempo\\
+\midrule
+A & 14,717,253 & 2,565 & 14 & 6.24 min \\
+B & 14,847,301 & 132,613 & 9 & 4.37 min \\
+C & 15,043,653 & 328,965 & 6 & 3.99 min \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \paragraph{Selección del mejor modelo.}
 El Modelo A obtuvo el mayor F1 macro (0.8799), con Accuracy 0.8802. Por tanto, bajo la regla definida antes del experimento, es el modelo seleccionado. La interpretación por clase y los posibles indicios de sobreajuste deben contrastarse con las matrices de confusión y las curvas presentadas.
 

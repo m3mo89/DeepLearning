@@ -55,18 +55,104 @@ después se aplica \texttt{GlobalAveragePooling2D}. Todos usan Adam, tasa
 $10^{-3}$, entropía cruzada categórica dispersa, lotes de 16, máximo 30 épocas,
 early stopping y el mismo conjunto de datos aumentado.
 
+\subsection{Qué se mantuvo fijo y qué se modificó}
+La comparación busca aislar el efecto del clasificador. Por ello no se
+modificaron los filtros, bloques convolucionales ni max pooling de VGG16. Los
+14,714,688 parámetros de esa sección se inicializaron con pesos aprendidos en
+ImageNet y se conservaron como no entrenables. Dichos pesos ya codifican
+características visuales generales, como bordes, texturas, formas y partes de
+objetos; reutilizarlos permite trabajar con 3,670 imágenes sin entrenar una red
+profunda completa desde cero.
+
+La parte sustituida fue el clasificador original de ImageNet. Después del
+tensor $7\times7\times512$ se utilizó \texttt{GlobalAveragePooling2D}, que
+produce 512 características sin añadir parámetros. Sobre ese vector se
+probaron tres cabezales con capacidad creciente. En todos los casos la salida
+se cambió de una neurona sigmoide del ejemplo binario a cinco neuronas
+\texttt{softmax}, una por clase. Por la misma razón, la pérdida se cambió de
+\texttt{binary\_crossentropy} a
+\texttt{sparse\_categorical\_crossentropy}.
+
 \section{Modelos propuestos}
-\arquitectura{A}{Dense 5\\Softmax}
-El Modelo A es la línea base: sus cinco salidas aprenden una frontera lineal
-sobre las 512 características, minimizando parámetros y riesgo de sobreajuste.
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{arquitectura_modelo_A_visual.png}
+\caption{Arquitectura completa del Modelo A. La sección convolucional se
+mantiene congelada y la modificación se concentra en la salida Softmax.}
+\label{fig:arquitecturaA}
+\end{figure}
+\subsection{Modelo A: clasificador lineal}
+El Modelo A conecta directamente las 512 características con las cinco clases:
+\[
+512\times5+5=2,565\text{ parámetros entrenables}.
+\]
+Los primeros 2,560 son conexiones y los cinco restantes son sesgos. Se propuso
+como línea base para comprobar si las características preentrenadas de VGG16
+ya separan las flores sin capas ocultas. Su baja capacidad reduce costo y
+riesgo de memorizar el entrenamiento. La modificación respecto al Colab del
+profesor consiste esencialmente en sustituir \texttt{Dense(1, sigmoid)} por
+\texttt{Dense(5, softmax)}.
 
-\arquitectura{B}{Dense 256, ReLU\\Dense 5, Softmax}
-El Modelo B agrega 256 neuronas ReLU para aprender combinaciones no lineales
-con una capacidad intermedia.
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{arquitectura_modelo_B_visual.png}
+\caption{Arquitectura completa del Modelo B, con una capa oculta de 256
+neuronas ReLU y cinco neuronas Softmax.}
+\label{fig:arquitecturaB}
+\end{figure}
+\subsection{Modelo B: capa oculta intermedia}
+El Modelo B agrega una capa de 256 neuronas ReLU antes de la salida. Sus pesos
+entrenables se calculan como:
+\[
+(512\times256+256)+(256\times5+5)=132,613.
+\]
+La capa oculta permite recombinar de forma no lineal las características de
+VGG16, con la expectativa de representar diferencias más complejas entre
+pétalos, colores y formas. Se eligieron 256 neuronas como capacidad intermedia:
+es la mitad del vector de entrada y evita el salto excesivo de parámetros que
+produciría una capa mayor. Esta variante permite medir si la no linealidad
+adicional supera a la línea base.
 
-\arquitectura{C}{Dense 512, ReLU\\Dropout 0.5\\Dense 128, ReLU\\Dense 5, Softmax}
-El Modelo C incrementa la capacidad y usa Dropout de 0.5 para reducir
-coadaptación y controlar el sobreajuste en un dataset moderado.
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{arquitectura_modelo_C_visual.png}
+\caption{Arquitectura completa del Modelo C: capas de 512 y 128 neuronas,
+Dropout de 0.5 y salida Softmax de cinco clases.}
+\label{fig:arquitecturaC}
+\end{figure}
+\subsection{Modelo C: cabezal profundo regularizado}
+El Modelo C usa 512 neuronas ReLU, Dropout de 0.5, una reducción a 128 neuronas
+ReLU y la salida de cinco clases:
+\[
+\begin{split}
+&(512\times512+512)+(512\times128+128)\\
+&\quad +(128\times5+5)=328,965
+\end{split}
+\]
+parámetros entrenables. La primera capa conserva una capacidad equivalente a
+las 512 características de entrada; la segunda actúa como cuello de botella
+para condensar la representación. Dropout no contiene pesos: durante
+entrenamiento desactiva aleatoriamente 50\% de las activaciones para limitar la
+coadaptación. Esta regularización se añadió porque el mayor número de pesos
+incrementa el riesgo de sobreajuste en un conjunto relativamente pequeño. El
+modelo prueba si más profundidad ayuda aun cuando se controla ese riesgo.
+
+\subsection{Qué significa ``los pesos obtenidos''}
+Un peso es un coeficiente numérico aprendido que determina cuánto influye una
+activación en la siguiente neurona. En este experimento existen dos grupos:
+
+\begin{itemize}
+\item \textbf{Pesos fijos:} los 14,714,688 parámetros de VGG16 provenientes de
+ImageNet. Se incluyen dentro de los archivos guardados, pero no se actualizan.
+\item \textbf{Pesos aprendidos:} los 2,565, 132,613 y 328,965 parámetros de los
+cabezales A, B y C. Adam los ajusta para minimizar la pérdida de clasificación
+de flores.
+\end{itemize}
+
+El archivo \texttt{modelo\_X\_best.weights.h5} conserva el checkpoint de la
+época con menor pérdida de validación; \texttt{modelo\_X.keras} conserva la
+arquitectura y todos los tensores necesarios para recargar el modelo. No es
+útil imprimir individualmente cientos de miles de coeficientes: su efecto se
+explica mediante el número de parámetros, las curvas, la generalización y las
+métricas de prueba. Los hashes SHA-256 guardados en los metadatos demuestran
+que cada archivo corresponde exactamente a la ejecución reportada.
 
 \section{Métricas}
 Para cada clase se interpreta el problema como uno-contra-el-resto:
@@ -87,10 +173,6 @@ la matriz de confusión son observaciones reales y las columnas predicciones.
 y después \texttt{python scripts/build\_report\_assets.py}.}
 
 \foreach \m in {A,B,C}{%
-\IfFileExists{../figures/arquitectura_modelo_\m.png}{
-\begin{figure}[H]\centering
-\includegraphics[width=.98\textwidth]{arquitectura_modelo_\m.png}
-\caption{Diagrama exportado por el Train del Modelo \m.}\end{figure}}{}
 \IfFileExists{../figures/curvas_modelo_\m.png}{
 \begin{figure}[H]\centering
 \includegraphics[width=.9\textwidth]{curvas_modelo_\m.png}
@@ -113,11 +195,23 @@ y después \texttt{python scripts/build\_report\_assets.py}.}
 \caption{Comparación global de los tres modelos.}\end{figure}}{}
 
 \section{Discusión}
-Las curvas permiten contrastar convergencia y brecha entre entrenamiento y
-validación; las matrices muestran qué pares de flores se confunden. Los
-histogramas de confianza permiten detectar errores seguros, especialmente
-relevantes al comparar mayor capacidad contra regularización. La discusión
-final debe basarse en los archivos generados, no en valores estimados.
+El incremento de pesos no produjo una mejora monotónica. El Modelo A, con el
+cabezal más pequeño, alcanzó el mejor F1 macro. Esto indica que la
+representación preentrenada ya era suficientemente discriminativa y que una
+frontera sencilla generalizó mejor. El Modelo B elevó considerablemente la
+capacidad, pero quedó ligeramente por debajo en prueba y mostró una brecha
+validación--prueba mayor. El Modelo C añadió todavía más pesos y regularización,
+pero obtuvo el menor F1 macro; Dropout redujo el riesgo de memorización, aunque
+no logró compensar completamente la complejidad del cabezal.
+
+Las matrices muestran que la confusión más persistente ocurre entre
+\emph{tulips} y \emph{roses}, clases con similitudes de forma y color. Las
+curvas permiten contrastar convergencia y separación entre entrenamiento y
+validación, mientras que los histogramas de confianza permiten localizar
+errores cometidos con alta seguridad. En conjunto, los resultados muestran que
+``más neuronas'' no implica automáticamente mejor clasificación: la capacidad
+debe ser proporcional al tamaño de los datos y a la calidad de las
+características de entrada.
 
 \section{Conclusión}
 La selección sigue una regla fijada previamente: mayor F1 macro de prueba,
