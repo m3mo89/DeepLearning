@@ -53,7 +53,8 @@ soporte que motivan reportar métricas macro además de Accuracy.}\end{figure}}{
 
 \section{Metodología}
 Los tres modelos emplean VGG16 preentrenada en ImageNet con
-\texttt{include\_top=False}. Sus 13 capas convolucionales permanecen congeladas;
+\texttt{include\_top=False} \cite{vgg}. Sus 13 capas convolucionales
+permanecen congeladas;
 después se aplica \texttt{GlobalAveragePooling2D}. Todos usan Adam, tasa
 $10^{-3}$, entropía cruzada categórica dispersa, lotes de 16, máximo 30 épocas,
 early stopping y el mismo conjunto de datos aumentado.
