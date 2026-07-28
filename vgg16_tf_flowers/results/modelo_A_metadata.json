@@ -1,0 +1,18 @@
+{
+  "modelo": "A",
+  "semilla": 42,
+  "dataset": "tf_flowers:3.0.1",
+  "clases": [
+    "dandelion",
+    "daisy",
+    "tulips",
+    "sunflowers",
+    "roses"
+  ],
+  "mejor_epoca": 14,
+  "duracion_segundos": 374.12051463127136,
+  "parametros_totales": 14717253,
+  "parametros_entrenables": 2565,
+  "modelo_A_best.weights.h5_sha256": "dda320b69ac7a219a14487b435d541ba17c50f673ad2812292f21b8c09a9ef22",
+  "modelo_A.keras_sha256": "96e69fb02d20add1e4143b2e3ff8683d945fbcd287a90ed4b92afa124c21ed5a"
+}

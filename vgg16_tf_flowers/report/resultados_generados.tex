@@ -1,0 +1,19 @@
+\begin{table}[H]
+\centering
+\caption{Resultados sobre el conjunto de prueba.}
+\label{tab:resultados}
+\begin{tabular}{lrrrr}
+\toprule
+Modelo & Accuracy & Precision macro & Recall macro & F1 macro\\
+\midrule
+A & 0.8802 & 0.8798 & 0.8814 & 0.8799 \\
+B & 0.8784 & 0.8785 & 0.8777 & 0.8775 \\
+C & 0.8675 & 0.8713 & 0.8644 & 0.8652 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Selección del mejor modelo.}
+El Modelo A obtuvo el mayor F1 macro (0.8799), con Accuracy 0.8802. Por tanto, bajo la regla definida antes del experimento, es el modelo seleccionado. La interpretación por clase y los posibles indicios de sobreajuste deben contrastarse con las matrices de confusión y las curvas presentadas.
+
+\paragraph{Análisis por clase.} En el modelo ganador, la clase con mayor F1 fue sunflowers (0.9048) y la de menor F1 fue roses (0.8317). La brecha absoluta entre F1 macro de validación y prueba fue 0.0219; este valor, junto con las curvas de aprendizaje, permite valorar la generalización sin basarse solamente en Accuracy.

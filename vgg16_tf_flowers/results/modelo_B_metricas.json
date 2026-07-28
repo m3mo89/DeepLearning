@@ -1,0 +1,12 @@
+{
+  "modelo": "B",
+  "accuracy": 0.8784029038112523,
+  "precision_macro": 0.8784541447293848,
+  "recall_macro": 0.8776750905040378,
+  "f1_macro": 0.8774751369591722,
+  "precision_weighted": 0.8802567324353646,
+  "recall_weighted": 0.8784029038112523,
+  "f1_weighted": 0.8786686884380693,
+  "f1_macro_validacion": 0.908287494985936,
+  "brecha_f1_validacion_prueba": 0.030812358026763742
+}

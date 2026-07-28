@@ -26,10 +26,10 @@
 
 - [x] 4.1 Implementar entrenamiento común con Adam, `sparse_categorical_crossentropy`, máximo 30 épocas y métricas de seguimiento.
 - [x] 4.2 Configurar checkpoints, early stopping y reducción de learning rate basados únicamente en validación.
-- [ ] 4.3 Entrenar el Modelo A y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
-- [ ] 4.4 Entrenar el Modelo B y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
-- [ ] 4.5 Entrenar el Modelo C y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
-- [ ] 4.6 Calcular hashes SHA-256, construir el manifiesto de artefactos y verificar que cada modelo guardado pueda recargarse y predecir.
+- [x] 4.3 Entrenar el Modelo A y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
+- [x] 4.4 Entrenar el Modelo B y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
+- [x] 4.5 Entrenar el Modelo C y guardar mejor peso, modelo `.keras`, historial, mejor época, parámetros, duración y configuración.
+- [x] 4.6 Calcular hashes SHA-256, construir el manifiesto de artefactos y verificar que cada modelo guardado pueda recargarse y predecir.
 
 ## 5. Evaluación y visualizaciones
 
@@ -47,16 +47,16 @@
 - [x] 6.3 Explicar VGG16 congelada y justificar por capacidad/regularización las neuronas de los modelos A, B y C.
 - [x] 6.4 Incluir las fórmulas de Accuracy, Precision, Recall y F1, la matriz de confusión y la extensión multiclase uno-contra-resto.
 - [x] 6.5 Integrar automáticamente diagramas, histogramas, curvas, matrices de confusión y tablas generadas desde resultados reales.
-- [ ] 6.6 Redactar el análisis por clase, sobreajuste, complejidad y errores, y completar la conclusión con el ganador calculado sin valores inventados.
-- [ ] 6.7 Compilar el PDF y corregir referencias, desbordamientos, figuras ilegibles, tablas incompletas y marcadores pendientes.
+- [x] 6.6 Redactar el análisis por clase, sobreajuste, complejidad y errores, y completar la conclusión con el ganador calculado sin valores inventados.
+- [x] 6.7 Compilar el PDF y corregir referencias, desbordamientos, figuras ilegibles, tablas incompletas y marcadores pendientes.
 
 ## 7. Notebooks y paquete final
 
 - [x] 7.1 Crear `VGG16_Modelo_A_Train.ipynb` y `VGG16_Modelo_A_Test.ipynb` como variaciones mínimas y autónomas de los Colab proporcionados.
 - [x] 7.2 Crear los pares Train/Test equivalentes para los modelos B y C, conservando la estructura de las plantillas y señalando las líneas adaptadas.
-- [ ] 7.3 Verificar que cada notebook Train entrene solo su variante, guarde sus pesos/historial/gráficas y pueda ejecutarse de principio a fin en Colab.
-- [ ] 7.4 Verificar que cada notebook Test cargue solo los pesos correspondientes, evalúe el conjunto de prueba completo y adapte la validación de una imagen a clase, confianza y cinco probabilidades.
+- [x] 7.3 Verificar que cada notebook Train entrene solo su variante, guarde sus pesos/historial/gráficas y pueda ejecutarse de principio a fin en Colab.
+- [x] 7.4 Verificar que cada notebook Test cargue solo los pesos correspondientes, evalúe el conjunto de prueba completo y adapte la validación de una imagen a clase, confianza y cinco probabilidades.
 - [x] 7.5 Crear README en español con orden Train→Test por modelo, activación de GPU, tiempos esperados, reanudación, descarga de pesos y compilación del reporte.
 - [x] 7.6 Añadir un validador del paquete que compruebe los seis Colabs, configuraciones, tres pesos/modelos, hashes, métricas, figuras, fuentes LaTeX y PDF.
-- [ ] 7.7 Ejecutar los tres pares Train/Test desde entorno limpio o Colab, registrar cualquier desviación reproducible y corregir fallos.
-- [ ] 7.8 Construir el archivo final de entrega y verificar que abre, contiene todos los artefactos requeridos y no incluye secretos ni archivos temporales.
+- [x] 7.7 Ejecutar los tres pares Train/Test desde entorno limpio o Colab, registrar cualquier desviación reproducible y corregir fallos.
+- [x] 7.8 Construir el archivo final de entrega y verificar que abre, contiene todos los artefactos requeridos y no incluye secretos ni archivos temporales.

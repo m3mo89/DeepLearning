@@ -34,6 +34,9 @@ required_source = [
 for path in required_source:
     if not path.exists():
         errors.append(f"Falta {path.relative_to(ROOT)}")
+report_source = ROOT / "report" / "main.tex"
+if report_source.exists() and "Nombre del estudiante" in report_source.read_text():
+    errors.append("Falta reemplazar 'Nombre del estudiante' en report/main.tex")
 
 if args.strict:
     for model in "ABC":
@@ -56,7 +59,11 @@ if args.strict:
                 key = filename + "_sha256"
                 if path.exists() and hashlib.sha256(path.read_bytes()).hexdigest() != meta.get(key):
                     errors.append(f"Hash incorrecto: {filename}")
-    for path in [ROOT / "report" / "resultados_generados.tex", ROOT / "report" / "reporte_vgg16.pdf"]:
+    for path in [
+        ROOT / "report" / "resultados_generados.tex",
+        ROOT / "report" / "conclusion_generada.tex",
+        ROOT / "report" / "reporte_vgg16.pdf",
+    ]:
         if not path.exists() or path.stat().st_size == 0:
             errors.append(f"Falta {path.relative_to(ROOT)}")
 
@@ -66,4 +73,3 @@ if errors:
         print("-", error)
     raise SystemExit(1)
 print("VALIDACIÓN CORRECTA" + (" (entrega completa)" if args.strict else " (estructura y fuentes)"))
-

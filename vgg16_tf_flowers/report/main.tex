@@ -9,7 +9,7 @@
 \geometry{margin=2.5cm}
 \graphicspath{{../figures/}}
 \title{Clasificación de imágenes con tres modelos basados en VGG16}
-\author{Nombre del estudiante}
+\author{Guillermo Tinoco Ramos}
 \date{\today}
 
 \newcommand{\arquitectura}[2]{%
@@ -121,9 +121,9 @@ final debe basarse en los archivos generados, no en valores estimados.
 
 \section{Conclusión}
 La selección sigue una regla fijada previamente: mayor F1 macro de prueba,
-seguido por Accuracy y, si persiste el empate, menor complejidad. El texto
-generado en la sección de resultados identifica al ganador únicamente después
-de completar los tres experimentos.
+seguido por Accuracy, menor brecha de generalización y menor complejidad.
+\IfFileExists{conclusion_generada.tex}{\input{conclusion_generada.tex}}{
+La conclusión permanece pendiente hasta completar los tres experimentos.}
 
 \section{Reproducibilidad}
 Se entregan seis notebooks Colab (Train y Test por modelo), configuración,

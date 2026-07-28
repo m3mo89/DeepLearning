@@ -1,0 +1,1 @@
+Modelo A; F1 macro=0.8799; Accuracy=0.8802

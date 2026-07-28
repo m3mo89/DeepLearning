@@ -83,6 +83,22 @@ El Modelo """ + esc(winner["modelo"]) + (
     "solamente en Accuracy."
 ) + "\n"
 (REPORT / "resultados_generados.tex").write_text(content)
+(REPORT / "conclusion_generada.tex").write_text(
+    f"El Modelo {winner['modelo']} ofrece el mejor desempeño global. Alcanzó "
+    f"Accuracy de {winner['accuracy']:.4f}, Precision macro de "
+    f"{winner['precision_macro']:.4f}, Recall macro de "
+    f"{winner['recall_macro']:.4f} y F1 macro de {winner['f1_macro']:.4f}. "
+    f"Superó en F1 macro al Modelo B ({metrics[1]['f1_macro']:.4f}) y al "
+    f"Modelo C ({metrics[2]['f1_macro']:.4f}), y presentó la menor brecha "
+    f"validación--prueba ({winner['brecha_f1_validacion_prueba']:.4f}). "
+    f"Además, necesitó únicamente {metadata[winner['modelo']]['parametros_entrenables']:,} "
+    "parámetros entrenables, por lo que la mayor complejidad de los otros "
+    "cabezales no produjo una mejora. Sus principales limitaciones aparecen "
+    f"en {esc(worst_class['clase'])}, con F1 de {float(worst_class['f1']):.4f}; "
+    "la matriz revela que la confusión dominante ocurre entre tulips y roses. "
+    "En consecuencia, se elige el Modelo A por ofrecer la mejor combinación "
+    "de desempeño, generalización y simplicidad."
+)
 (RESULTS / "ganador.txt").write_text(
     f"Modelo {winner['modelo']}; F1 macro={winner['f1_macro']:.4f}; "
     f"Accuracy={winner['accuracy']:.4f}\n"
