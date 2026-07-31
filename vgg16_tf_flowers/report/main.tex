@@ -2,7 +2,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[spanish,es-nodecimaldot]{babel}
-\usepackage{amsmath,amssymb,booktabs,float,graphicx,geometry,xcolor}
+\usepackage{amsmath,amssymb,array,booktabs,float,graphicx,geometry,longtable,xcolor}
 \usepackage{hyperref}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
@@ -41,6 +41,11 @@ roses \cite{tfdsflowers}. Como el catálogo ofrece un único split, se genera un
 partición estratificada y determinista de 70\% entrenamiento, 15\% validación y
 15\% prueba con semilla 42. Esta decisión conserva aproximadamente la
 proporción de cada clase y evita emplear prueba para seleccionar el modelo.
+La semilla no mejora por sí misma la calidad del clasificador: fija el estado
+de los generadores aleatorios para repetir la asignación de imágenes y para
+que A, B y C reciban exactamente los mismos ejemplos en cada partición. De ese
+modo, una diferencia entre modelos no puede atribuirse a que alguno obtuvo por
+azar una división más favorable.
 Las imágenes tienen dimensiones y condiciones variables, por lo que se
 redimensionan a $224\times224$ y se aplica \texttt{preprocess\_input} de VGG16.
 
@@ -76,6 +81,54 @@ se cambió de una neurona sigmoide del ejemplo binario a cinco neuronas
 \texttt{softmax}, una por clase. Por la misma razón, la pérdida se cambió de
 \texttt{binary\_crossentropy} a
 \texttt{sparse\_categorical\_crossentropy}.
+
+\subsection{Por qué no se utilizó \texttt{Flatten}}
+La salida convolucional de VGG16 tiene forma $7\times7\times512$.
+\texttt{Flatten} conservaría por separado todos sus valores y produciría
+
+\[
+7\times7\times512=25,088\text{ características}.
+\]
+
+En cambio, \texttt{GlobalAveragePooling2D} promedia las 49 posiciones de cada
+mapa y entrega 512 características, sin añadir parámetros. Esta reducción
+hace que el cabezal dependa menos de la posición exacta de una característica:
+para clasificar una flor suele importar que cierto patrón esté presente, no
+que aparezca siempre en el mismo píxel. También reduce memoria, cálculo y
+riesgo de sobreajuste en un conjunto de solo 3,670 imágenes.
+
+El efecto sobre los parámetros entrenables sería considerable. Sustituyendo
+el promedio global por \texttt{Flatten}, sin cambiar las capas posteriores, A
+pasaría de 2,565 a 125,445 parámetros; B, de 132,613 a 6,424,069; y C, de
+328,965 a 12,911,877. Estos valores se obtienen con la misma fórmula de una
+capa densa, $n\times m+m$, pero usando $n=25,088$ en la primera capa.
+\texttt{Flatten} no es incorrecto en general: conserva más detalle espacial y
+podría ser útil cuando la ubicación sea decisiva. Aquí se eligió el promedio
+global como un compromiso deliberado; descarta ese detalle a cambio de una
+representación mucho más compacta y una comparación de cabezales más
+controlada.
+
+\subsection{Sobreajuste, subajuste y generalización}
+El \emph{sobreajuste} ocurre cuando el modelo aprende particularidades del
+entrenamiento---por ejemplo, fondos, posiciones o ruido---que no representan
+patrones generales de las clases. Puede acertar mucho en imágenes conocidas y
+perder desempeño en validación o prueba. La diferencia entre el desempeño de
+entrenamiento y el obtenido fuera de esa muestra se denomina \emph{brecha de
+generalización}.
+
+Si el error de entrenamiento continúa bajando mientras el de validación se
+estanca o aumenta, las curvas aportan un indicio de sobreajuste. Una brecha
+aislada no lo demuestra automáticamente: también influyen el tamaño de la
+muestra y la variabilidad del entrenamiento. El \emph{subajuste} es el caso
+opuesto, en el que la capacidad o el entrenamiento son insuficientes y el
+modelo funciona mal incluso con los datos de entrenamiento. Un buen ajuste
+mantiene resultados altos y próximos tanto en datos conocidos como en datos
+nuevos.
+
+Este experimento limita el sobreajuste mediante VGG16 congelada,
+\texttt{GlobalAveragePooling2D}, aumentación, \emph{early stopping} y
+cabezales de tamaño acotado; C añade \texttt{Dropout}. Estas medidas reducen
+el riesgo, pero ninguna garantiza por sí sola una mejora.
 
 \subsection{Conceptos necesarios para leer los cabezales}
 Una capa \texttt{Dense} o densa conecta cada valor de entrada con cada una de
@@ -115,8 +168,11 @@ neuronas porque hay cinco clases mutuamente excluyentes. A diferencia de 256,
 512 o 128, este cinco no es una elección de capacidad que pueda cambiarse sin
 cambiar el problema.
 
-\texttt{Dropout} es una regularización, no una capa que aprenda nuevas
-combinaciones. Durante cada paso de entrenamiento, \texttt{Dropout(0.5)}
+Por tanto, \texttt{Dense} transforma y recombina características mediante
+pesos aprendidos. \texttt{Dropout}, en cambio, es una técnica de
+regularización y no una alternativa funcional a la capa densa: no aprende
+nuevas combinaciones. Durante cada paso de entrenamiento,
+\texttt{Dropout(0.5)}
 anula aleatoriamente aproximadamente la mitad de las activaciones y Keras
 ajusta la escala de las restantes. Esto dificulta que unas neuronas dependan
 siempre de otras y puede reducir la coadaptación y el sobreajuste. En
@@ -125,6 +181,24 @@ completa con el escalado aprendido. Dropout no añade pesos y tampoco garantiza
 por sí solo una mejora.
 
 \section{Modelos propuestos}
+Los tres cabezales no se escogieron como opciones arbitrarias ni mediante una
+búsqueda exhaustiva. Forman una escala controlada de capacidad y responden
+tres preguntas progresivas, manteniendo iguales VGG16, las particiones, el
+preprocesamiento y el protocolo de entrenamiento:
+
+\begin{itemize}
+\item \textbf{A, capacidad mínima:} ?`las 512 características preentrenadas ya
+pueden separarse mediante una frontera lineal?
+\item \textbf{B, capacidad intermedia:} ?`una recombinación no lineal de 256
+unidades mejora esa línea base?
+\item \textbf{C, mayor capacidad regularizada:} ?`más profundidad ayuda cuando
+\texttt{Dropout} controla parte del riesgo adicional de sobreajuste?
+\end{itemize}
+
+Esta progresión permite asociar los cambios observados principalmente con la
+capacidad del cabezal. Los valores 256, 512 y 128 son hipótesis razonadas para
+representar niveles distintos, no valores universalmente óptimos.
+
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{arquitectura_modelo_A_visual.png}
 \caption{Arquitectura completa del Modelo A. La sección convolucional se
@@ -223,6 +297,80 @@ forma independiente. Por tanto, ``partir desde cero'' solo describe los
 cabezales A, B y C; el extractor VGG16 de los tres sí parte de los mismos pesos
 preentrenados en ImageNet.
 
+\subsection{Alternativas no evaluadas y delimitación del alcance}
+Existen otras formas de transformar las características de VGG16 y de
+regularizar el aprendizaje. Una capa como \texttt{Dense} o \texttt{Conv2D}
+modifica la representación; una técnica como \texttt{Dropout} o L2 intenta
+controlar cómo se aprende. Por ello no son sustitutos equivalentes. La
+Tabla~\ref{tab:alternativas} resume posibilidades reconocidas que \textbf{no
+se entrenaron ni se compararon} en este trabajo.
+
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{.18\textwidth}
+>{\raggedright\arraybackslash}p{.18\textwidth}
+>{\raggedright\arraybackslash}p{.23\textwidth}
+>{\raggedright\arraybackslash}p{.32\textwidth}@{}}
+\caption{Alternativas no evaluadas: función, ventaja potencial y motivo de
+exclusión del alcance experimental.}\label{tab:alternativas}\\
+\toprule
+\textbf{Alternativa} & \textbf{Función} & \textbf{Ventaja potencial} &
+\textbf{Motivo de exclusión}\\
+\midrule
+\endfirsthead
+\multicolumn{4}{c}{\tablename\ \thetable{} (continuación)}\\
+\toprule
+\textbf{Alternativa} & \textbf{Función} & \textbf{Ventaja potencial} &
+\textbf{Motivo de exclusión}\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\texttt{Flatten} & Agregar mapas mediante concatenación. & Conserva cada
+posición espacial. & Produciría 25,088 entradas y hasta millones de pesos,
+elevando costo y riesgo de sobreajuste.\\
+\texttt{GlobalMax}\allowbreak\texttt{Pooling2D} & Agregar cada mapa por su máximo. & Destaca la
+respuesta más fuerte. & Cambiaría el criterio común de agregación y requeriría
+otra comparación controlada.\\
+\texttt{Conv2D} adicional & Transformar mapas conservando relaciones
+espaciales. & Podría aprender patrones específicos de flores. & Modificaría
+el extractor, no solo la capacidad del clasificador.\\
+Atención & Ponderar regiones o características. & Podría concentrarse en
+pétalos o centros relevantes. & Añadiría arquitectura, parámetros e
+hiperparámetros distintos.\\
+SVM externo & Clasificar las características fuera de Keras. & Puede ser
+eficaz con conjuntos pequeños. & Cambiaría el procedimiento de optimización y
+la comparación directa entre cabezales.\\
+\emph{Fine-tuning} & Adaptar capas de VGG16 a las flores. & Podría especializar
+los filtros visuales. & Descongelaría millones de parámetros e impediría
+aislar el efecto del cabezal.\\
+Regularización L2 & Penalizar pesos grandes. & Puede favorecer soluciones más
+suaves. & Exige seleccionar y validar un coeficiente adicional.\\
+\texttt{Batch}\allowbreak\texttt{Normalization} & Normalizar activaciones internas. & Puede
+estabilizar la optimización. & Cambiaría la dinámica de entrenamiento y no
+reemplaza directamente a \texttt{Dropout}.\\
+\emph{Label smoothing} & Suavizar los objetivos de probabilidad. & Puede
+reducir sobreconfianza. & Modificaría la pérdida y añadiría otro
+hiperparámetro.\\
+MixUp o CutMix & Combinar imágenes y etiquetas. & Puede aumentar robustez. &
+Cambiaría simultáneamente los datos, las etiquetas y sus hiperparámetros.\\
+Otras tasas de \texttt{Dropout} & Variar la intensidad de regularización. &
+Podrían ajustar mejor el equilibrio entre capacidad y generalización. &
+Requerirían una búsqueda de hiperparámetros y ejecuciones adicionales.\\
+\end{longtable}
+\endgroup
+
+No se omitieron estas opciones porque se supongan inferiores. El objetivo era
+aislar el efecto de aumentar la capacidad de un cabezal denso. Combinar, por
+ejemplo, atención, L2 y \emph{fine-tuning} impediría atribuir una diferencia a
+una causa concreta. Además, cada alternativa exige ajustar sus propios
+hiperparámetros; compararlas rigurosamente multiplicaría las combinaciones y
+requeriría repetir cada una con varias semillas. Ese estudio excede el alcance
+computacional y metodológico de esta comparación de tres modelos, pero queda
+como trabajo futuro.
+
 \subsection{Qué significa ``los pesos obtenidos''}
 Un peso es un coeficiente numérico aprendido que determina cuánto influye una
 activación en la siguiente neurona. En este experimento existen dos grupos:
@@ -267,10 +415,10 @@ las restantes correctamente descartadas.
 clasificada correctamente. Es intuitiva, pero un único valor puede ocultar que
 una clase funciona peor que otra.
 \item \textbf{Precision} responde: de todas las imágenes que el modelo llamó
-de una clase, ¿cuántas realmente pertenecían a ella? Una Precision baja
+de una clase, ?`cuántas realmente pertenecían a ella? Una Precision baja
 significa muchos falsos positivos.
 \item \textbf{Recall} responde: de todas las imágenes reales de una clase,
-¿cuántas encontró el modelo? Un Recall bajo significa muchos falsos negativos.
+?`cuántas encontró el modelo? Un Recall bajo significa muchos falsos negativos.
 \item \textbf{F1} es la media armónica de Precision y Recall. Solo es alto
 cuando ambas lo son, por lo que evita favorecer un modelo que mejore una a
 costa de deteriorar demasiado la otra.
@@ -402,6 +550,14 @@ Se entregan seis notebooks Colab (Train y Test por modelo), configuración,
 manifiesto de splits, historiales, predicciones, métricas, figuras, modelos
 \texttt{.keras}, mejores pesos y hashes SHA-256. Cada Test carga exclusivamente
 el modelo producido por su Train correspondiente.
+
+Además de la partición, la semilla 42 controla la inicialización aleatoria de
+cada cabezal, el orden de los lotes, la aumentación y las máscaras de
+\texttt{Dropout}. Esto hace la ejecución más repetible y justa, pero no
+garantiza resultados numéricamente idénticos entre distintas GPU, versiones o
+operaciones paralelas. Una sola semilla tampoco mide la variabilidad: afirmar
+estabilidad o significancia estadística requeriría repetir A, B y C con varias
+semillas y reportar, por ejemplo, media, dispersión o intervalos de confianza.
 
 \begin{thebibliography}{9}
 \bibitem{tfdsflowers}

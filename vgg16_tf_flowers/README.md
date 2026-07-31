@@ -1,8 +1,12 @@
 # Clasificación `tf_flowers` con tres modelos VGG16
 
-Entrega académica basada directamente en los Colab `VGG16_Train.ipynb` y
-`VGG16_Test.ipynb` del profesor. La sección convolucional de VGG16 se conserva
-con pesos ImageNet y permanece congelada. Solo cambian los cabezales densos.
+**Autor:** Guillermo Tinoco Ramos
+
+En este proyecto comparé tres clasificadores para el conjunto `tf_flowers` a
+partir de los Colab `VGG16_Train.ipynb` y `VGG16_Test.ipynb` proporcionados en
+clase. En los tres casos conservé la sección convolucional de VGG16 con pesos
+de ImageNet y sin entrenamiento adicional. La diferencia entre los modelos se
+encuentra únicamente en el cabezal clasificador.
 
 ## Archivos principales
 
@@ -14,8 +18,8 @@ con pesos ImageNet y permanece congelada. Solo cambian los cabezales densos.
 
 ## Prerrequisitos y preparación local
 
-Los notebooks están preparados principalmente para Google Colab. Para ejecutar
-las utilidades o reproducir el entorno localmente se necesita Python 3:
+Preparé los notebooks para ejecutarlos principalmente en Google Colab. Para
+usar las utilidades o reproducir el entorno localmente se necesita Python 3:
 
 ```bash
 cd vgg16_tf_flowers
@@ -37,30 +41,35 @@ no forman parte de `requirements.txt`.
 4. Sin cambiar la estructura de carpetas, ejecuta
    `VGG16_Modelo_A_Test.ipynb`.
 5. Repite Train→Test para B y C. Cada Train puede tardar de decenas de minutos
-   a algunas horas según GPU, carga del servicio y early stopping.
+   a algunas horas según la GPU, la carga del servicio y el momento en que se
+   active `EarlyStopping`.
 6. Descarga `weights/`, `results/`, `figures/` y `data/split_manifest.csv`.
 
 Si la carpeta tiene otro nombre o ubicación en Drive, modifica de forma
 consistente la celda `%cd` y el valor `RAIZ_DRIVE` al inicio de cada notebook.
 No basta con cambiar solo uno de los dos.
 
-Si Colab se interrumpe después de terminar un modelo, sus archivos guardados
-permiten continuar con el siguiente. No se deben mezclar pesos entre modelos.
+Si Colab se interrumpe después de terminar un modelo, los archivos guardados
+permiten continuar con el siguiente. Cada notebook de prueba debe cargar los
+pesos de su modelo correspondiente.
 
 ## Resultados producidos
 
-Cada Train guarda el mejor `.weights.h5`, el modelo `.keras`, historial,
-metadata, hashes, curvas y una imagen de arquitectura. Cada Test guarda:
+Cada notebook de entrenamiento guarda los mejores pesos en formato
+`.weights.h5`, el modelo `.keras`, el historial, los metadatos, los hashes, las
+curvas y una imagen de la arquitectura. Cada notebook de prueba guarda:
 
 - matriz de confusión absoluta y normalizada;
 - TP, TN, FP y FN por clase;
-- Accuracy, Precision, Recall y F1 por clase, macro y weighted;
+- Accuracy, Precision, Recall y F1 por clase, además de los promedios macro y
+  ponderado;
 - probabilidades y etiquetas de cada ejemplo;
 - gráficas de métricas e histograma de confianza;
 - predicción de una imagen individual.
 
-Al completar los tres Test también se genera la comparación global y la
-selección del ganador por F1 macro.
+Después de evaluar los tres modelos se genera una comparación global. Utilicé
+F1 macro como criterio principal porque asigna la misma importancia a las
+cinco clases.
 
 ## Reporte
 
@@ -91,8 +100,10 @@ cp main.pdf reporte_vgg16.pdf
 Ambos flujos deben dejar `report/reporte_vgg16.pdf`. El repositorio conserva
 además `report/main.pdf` cuando se compila con Tectonic.
 
-Escribe tu nombre en `report/main.tex` antes de entregar. El reporte no inventa
-resultados: la tabla y el ganador provienen de los JSON generados.
+Las tablas, las métricas y la selección del modelo ganador se generan a partir
+de los archivos JSON producidos durante la evaluación. De esta manera, el
+contenido del reporte se puede relacionar directamente con las ejecuciones de
+los notebooks.
 
 ## Validación y paquete
 
