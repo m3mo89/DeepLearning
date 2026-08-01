@@ -105,6 +105,26 @@ de los archivos JSON producidos durante la evaluación. De esta manera, el
 contenido del reporte se puede relacionar directamente con las ejecuciones de
 los notebooks.
 
+## Presentación
+
+La presentación se encuentra en `presentation/`. Incluye:
+
+- `presentacion.tex`: fuente LaTeX Beamer en formato panorámico 16:9;
+- `presentacion.pdf`: versión compilada para exponer;
+- `guion.md`: tiempos, explicación oral y transiciones;
+- `meme_modelo_a.png`: cierre visual de la diapositiva de preguntas.
+
+Para compilarla con Tectonic:
+
+```bash
+cd presentation
+tectonic presentacion.tex
+```
+
+El recorrido principal consta de dieciocho diapositivas de contenido y una de
+preguntas. El guion suma aproximadamente 18 minutos 40 segundos e incluye las
+arquitecturas del reporte, curvas y matrices de confusión de los tres modelos.
+
 ## Validación y paquete
 
 Desde la raíz `vgg16_tf_flowers/`, la validación estructural comprueba
